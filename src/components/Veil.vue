@@ -1,24 +1,35 @@
 <template>
-  <div class="flex-1 flex flex-col px-4">
-    <carousel :perPage="1" class="my-auto img-slider flex-1">
-      <slide v-for="img in images" :key="img.id">
-        <img :src="img.src" :alt="img.alt" />
-      </slide>
-    </carousel>
+  <div class="veil flex-1 flex flex-col px-4 z-10">
+    <div class="img-wrapper flex-1">
+      <img :src="images[0].src" :alt="images[0].alt" />
+    </div>
     <div class="info flex flex-col self-center">
-      {{ item.title }}
-      <select name="variant" @change="changeVariant($event)">
+      <div class="title flex-1 px-6 py-4 text-black text-center">
+        {{ item.title }}
+      </div>
+      <select name="variant" v-model="variant" class="py-4 mx-4 font-sans">
         <option
           v-for="(option, i) in lengthOptions"
           :key="i"
           :value="option.value"
-          >{{ option.value }}
-        </option>
+          >{{ option.value }}</option
+        >
       </select>
 
-      <button v-if="available" @click="selectVeil">Add Me</button>
-      <button v-else-if="selected" @click="deselectVeil">Selected</button>
-      <button v-else>Out of stock</button>
+      <div class="w-full self-end text-center py-4 flex flex-col">
+        <button v-if="selected" @click="deselectVeil">Selected</button>
+        <button
+          v-else-if="available"
+          @click="selectVeil"
+          v-html="buyButtonText"
+        ></button>
+        <button class v-else>Out of stock</button>
+        <div class="mt-4" v-if="availableToBuy">
+          <a href="#" class="font-sans text-blue italic text-xl" @click="buy"
+            >Buy Now</a
+          >
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -30,17 +41,33 @@ export default {
     item: {
       type: Object,
       required: true
+    },
+    currentVeil: {
+      type: Object,
+      default: () => ({})
+    },
+    variantIndex: {
+      type: Object,
+      default: () => ({})
+    },
+    type: {
+      type: String,
+      default: "Custom"
     }
   },
   data() {
     return {
-      currentVariant: {},
-      selected: false
+      variant: {},
+      currentVariant: {}
     };
   },
   computed: {
     images() {
       return this.item.images;
+    },
+    image() {
+      if (this.images[0]) return this.images[0].src;
+      return "";
     },
     lengthOptions() {
       if (!(this.item && this.item.options.length)) return [];
@@ -51,45 +78,73 @@ export default {
     },
     available() {
       return this.currentVariant && this.currentVariant.available;
+    },
+    selected() {
+      return (
+        this.currentVeil &&
+        this.currentVeil.id &&
+        this.variantIndex[this.currentVeil.id].id === this.item.id
+      );
+    },
+    buyButtonText() {
+      return "Order Try-On";
     }
   },
   watch: {
     item: {
       immediate: true,
       handler() {
-        let variants = this.item.variants.filter(
+        let item = this.item.variants.find(
           variant =>
             variant.selectedOptions.find(opt => opt.name === "Type").value ===
-            "Sample"
+            this.type
         );
-        this.currentVariant = variants[0];
+        this.variant = item.selectedOptions.find(
+          opt => opt.name === "Length"
+        ).value;
+      }
+    },
+    variant: {
+      immediate: true,
+      handler(newVal) {
+        const newVariant = this.item.variants.find(variant => {
+          let type = variant.selectedOptions.find(opt => opt.name == "Type");
+          let length = variant.selectedOptions.find(
+            opt => opt.name == "Length"
+          );
+          return length.value === newVal && type.value === this.type;
+        });
+        this.currentVariant = newVariant;
       }
     }
   },
   methods: {
-    changeVariant(ev) {
-      let option = ev.target.value;
-      const variant = this.item.variants.find(variant => {
-        let type = variant.selectedOptions.find(opt => opt.name == "Type");
-        let length = variant.selectedOptions.find(opt => opt.name == "Length");
-        return length.value === option && type.value === "Sample";
-      });
-      this.currentVariant = variant;
-    },
     selectVeil() {
       this.$emit("select-veil", this.currentVariant);
-      this.selected = true;
     },
     deselectVeil() {
       this.$emit("deselect-veil", this.currentVariant);
-      this.selected = true;
     }
   }
 };
 </script>
 <style scoped>
-img {
-  height: 500px;
-  width: 370px;
+.img-wrapper {
+  width: 200px;
+  margin: auto;
+  max-height: 300px;
+}
+.info {
+  min-height: 100px;
+}
+.title {
+  min-height: 70px;
+}
+button {
+  background-color: transparent;
+  background-image: url(../assets/button.svg);
+  background-size: 100% 100%;
+  border: 0;
+  @apply text-white px-6 py-4;
 }
 </style>

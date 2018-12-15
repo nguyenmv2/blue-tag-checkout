@@ -1,35 +1,183 @@
 <template>
-  <v-modal>
-    <h1 slot="header">{{ header }}</h1>
-    <div slot="body" class="flex flex-col">
-      <div class="flex" id="step-1" v-show="step == 1">
-        <veil
-          v-for="item in products"
-          :key="item.id"
-          :item="item"
-          @select-veil="onSelectVeil"
-          @deselect-veil="onDeselectVeil"
-        />
+  <div class="h-full">
+    <div class="container mx-auto">
+      <div class="flex flex-col justify-center text-center pb-6 tracking-wide">
+        <h2 class="font-serif text-2xl text-center py-4 italic leading-loose">
+          Finish The Look With
+        </h2>
+        <h1 class="font-serif text-3xl uppercase text-black">Accessories</h1>
       </div>
-      <div id="step-2" v-show="step == 2"></div>
-      <div id="step-3" v-show="step == 3"></div>
+      <div
+        class="flex-1 flex flex-col justify-center mx-12 items-center"
+        id="step-1"
+        v-show="step == 1"
+      >
+        <p
+          v-if="this.type !== 'buy'"
+          class="text-xl text-blue font-serif tracking-wide leading-loose py-8 italic"
+        >
+          Add a veil to try on box for free
+        </p>
+        <div class="flex flex-1 z-10">
+          <veil
+            v-for="item in products"
+            :key="item.id"
+            :type="veilByType"
+            :item="item"
+            :currentVeil="selectedVeil"
+            :variantIndex="variantIndex"
+            @select-veil="onSelectVeil"
+            @deselect-veil="onDeselectVeil"
+            class="flex flex-1 z-10"
+          />
+        </div>
+        <div class="lg:pb-8 z-10 py-8">
+          <a
+            href="#"
+            class="font-serif text-xl tracking-wide text-blue link uppercase italic"
+          >
+            Continue to checkout
+            <img src="./assets/arrows_sideways.svg" alt="" class="h-4" />
+          </a>
+        </div>
+      </div>
     </div>
-    <div slot="footer">
-      <a href="#" v-if="step > 1" @click="step -= 1">Previous</a>
-      <a href="#" v-if="step < 3 && step >= 1" @click="step += 1">Next</a>
-      <a href="#" v-if="step === 3">Done</a>
+    <div class="bg-blue-light pt-16">
+      <div class="container mx-auto flex flex-col justify-center items-center">
+        <h1 class="text-blue font-sans">Shopping Bag</h1>
+
+        <div class="w-full py-8 flex flex-col">
+          <h2 class="py-4 font-serif font-semibold text-blue">
+            Your Sample Order
+          </h2>
+          <table class="w-full pt-4">
+            <thead>
+              <tr class="text-blue font-sans tracking-wide">
+                <th>Your Try-On Sample</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th class="action-col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(lineItem, idx) in sampleLineItems"
+                :key="idx"
+                class="text-blue font-serif my-6"
+              >
+                <th class="justify-around">
+                  <div class="pl-8">
+                    <div class="lineItem--thumbnail">
+                      <img :src="lineItemThumbnail(lineItem)" />
+                    </div>
+                  </div>
+                  <div class="text-center flex-grow justify-center">
+                    {{ lineItem.title }}
+                  </div>
+                </th>
+                <th>{{ lineItemSize(lineItem) }}</th>
+                <th>{{ lineItem.quantity }}</th>
+                <th>${{ lineItem.variant.price }}</th>
+                <th class="action-col">x</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="w-full py-8 flex flex-col">
+          <h2 class="py-4 font-serif font-semibold text-blue">
+            Your Purchases
+          </h2>
+          <table class="w-full pt-4">
+            <thead>
+              <tr class="text-blue font-sans tracking-wide">
+                <th>Your Try-On Sample</th>
+                <th>Size</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th class="action-col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(lineItem, idx) in purchaseLineItems"
+                :key="idx"
+                class="text-blue font-serif my-6"
+              >
+                <th class="justify-around">
+                  <div class="pl-8">
+                    <div class="lineItem--thumbnail">
+                      <img :src="lineItemThumbnail(lineItem)" />
+                    </div>
+                  </div>
+                  <div class="text-center flex-grow justify-center">
+                    {{ lineItem.title }}
+                  </div>
+                </th>
+                <th>{{ lineItemSize(lineItem) }}</th>
+                <th>{{ lineItem.quantity }}</th>
+                <th>${{ lineItem.variant.price }}</th>
+                <th class="action-col">x</th>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div
+          class="flex flex-col lg:flex-row font-serif text-blue text-md tracking-wide leading-loose ml-4 justify-center"
+        >
+          <div class="w-3/4 flex flex-col lg:flex-row -mx-4">
+            <div class="flex flex-col px-4">
+              <input type="text" name="size" v-model="size" />
+              <label for="size"
+                >What size of clothes do you typically wear?</label
+              >
+            </div>
+            <div class="flex flex-col px-4">
+              <flat-pickr :config="dateConfig" v-model="weddingDate" />
+              <label for="wedding-date"
+                >When is your wedding? (leave this blank if you haven't decided
+                on a date yet)</label
+              >
+            </div>
+            <div class="flex flex-col px-4">
+              <flat-pickr :config="dateConfig" v-model="receiveDate" />
+              <label for="receive-date">
+                When do you want to receive your sample? (leave blank for ASAP)
+              </label>
+            </div>
+            <div class="flex flex-col px-4">
+              <textarea
+                name="note"
+                cols="30"
+                rows="5"
+                v-model="note"
+              ></textarea>
+              <label for="note"
+                >Any other notes or requests you would like us to know?</label
+              >
+            </div>
+          </div>
+          <div class="w-1/4">
+            <button class="checkout-btn">Checkout</button>
+          </div>
+        </div>
+      </div>
     </div>
-  </v-modal>
+  </div>
 </template>
 
 <script>
 import Client from "shopify-buy";
+import flatPickr from "vue-flatpickr-component";
+import "flatpickr/dist/flatpickr.css";
 import VModal from "./components/VModal";
 import Veil from "./components/Veil";
 
 export default {
   name: "app",
   components: {
+    flatPickr,
     VModal,
     Veil
   },
@@ -41,81 +189,244 @@ export default {
   },
   computed: {
     header() {
-      return "Finish the look with a veil on us";
+      if (this.step == 1) {
+        return "Finish the look with a veil on us";
+      } else if (this.step == 2) {
+        return "Additional Info";
+      } else {
+        return "Review Order";
+      }
+    },
+    lineItems() {
+      return this.checkout.lineItems;
+    },
+    veilByType() {
+      if (this.type === "buy") return "Custom";
+
+      return "Sample";
+    },
+    purchaseLineItems() {
+      return this.lineItems.filter(item => {
+        return item.variant.selectedOptions.find(
+          opt => opt.name === "Type" && opt.value === "Custom"
+        );
+      });
+    },
+    sampleLineItems() {
+      return this.lineItems.filter(item => {
+        return item.variant.selectedOptions.find(
+          opt => opt.name === "Type" && opt.value === "Sample"
+        );
+      });
     }
   },
-  data: function() {
+  data() {
     return {
-      checkout: {},
+      checkout: {
+        lineItems: []
+      },
       products: [],
       client: {},
       selectedVeil: {},
-      step: 1
+      step: 1,
+      variantIndex: {},
+      lineItemToRemove: [],
+      type: undefined,
+      dateConfig: {
+        altInput: true,
+        altFormat: "D, M J, Y",
+        minDate: "today"
+      },
+      note: "",
+      size: "",
+      weddingDate: "",
+      receiveDate: ""
     };
+  },
+  watch: {
+    selectedVeil(newVal, oldVal) {
+      if (oldVal && oldVal.id) {
+        this.lineItemToRemove.push(oldVal.id);
+      }
+    },
+    step(newVal, oldVal) {
+      if (oldVal == 1) {
+        const selectedIndex = this.lineItemToRemove.findIndex(
+          id => id === this.selectedVeil.id
+        );
+
+        this.client.checkout.removeLineItems(
+          this.checkout.id,
+          this.lineItemToRemove
+            .splice(selectedIndex, 1)
+            .filter(id =>
+              this.checkout.lineItems.map(item => item.id).includes(id)
+            )
+        );
+        this.client.checkout
+          .addLineItems(this.checkout.id, {
+            variantId: this.selectedVeil.id,
+            quantity: 1
+          })
+          .then(checkout => {
+            this.checkout = checkout;
+          });
+      }
+    }
   },
   mounted() {
     const client = Client.buildClient({
       domain: "bluetagbridal.myshopify.com",
       storefrontAccessToken: "842ea89dedb8e2075e5434240efe2402"
     });
+    const collectionId = btoa("gid://shopify/Collection/87363256393");
     this.client = client;
     client.checkout.fetch(this.checkoutId).then(checkout => {
       this.checkout = checkout;
-    });
-    const collectionId = btoa("gid://shopify/Collection/87363256393");
-    client.collection.fetchWithProducts(collectionId).then(collection => {
-      this.products = collection.products;
-
-      // client.checkout
-      //   .addLineItems(this.checkoutId, {
-      //     variantId: this.collection.products[0].variants[0].id,
-      //     quantity: 1
-      //   })
-      //   .then(checkout => {
-      //     console.log(checkout.lineItems);
-      //   });
+      client.collection.fetchWithProducts(collectionId).then(collection => {
+        this.products = collection.products;
+        this.products.forEach(product => {
+          product.variants.forEach(variant => {
+            this.variantIndex[variant.id] = product;
+          });
+        });
+        let inCart = this.checkout.lineItems;
+        inCart.forEach(item => {
+          if (
+            item.variant.selectedOptions.find(
+              vari => vari.name === "Type" && vari.value === "Custom"
+            )
+          ) {
+            this.type = "buy";
+          } else {
+            const productId = item.variant.product.id;
+            if (this.products.map(p => p.id).includes(productId)) {
+              this.selectedVeil = item.variant;
+            }
+          }
+        });
+      });
     });
   },
   methods: {
-    orderSample(evt, item) {
-      console.log("Order sample");
-      console.log(item);
-    },
-    allVariantsOfProduct(product) {
-      const lengths = [
-        "Hip (40 inches)",
-        "Chapel (90 inches)",
-        "Cathedral (108 inches)"
-      ];
-
-      let a = lengths.map(length =>
-        this.client.product.helpers.variantForOptions(product, {
-          Type: "Sample",
-          Length: length
-        })
-      );
-      return a.filter(p => p.title.includes("Sample") && p.available);
-    },
     onSelectVeil(veil) {
       this.selectedVeil = veil;
     },
     onDeselectVeil() {
       this.selectedVeil = {};
+    },
+    onUpdateCheckout(checkout) {
+      this.checkout = checkout;
+    },
+    isVeilSelected(veil) {
+      this.selectedVeil.id === veil.id;
+    },
+    openCheckout() {
+      window.location = this.checkout.webUrl;
+    },
+    lineItemSize(lineItem) {
+      let size = lineItem.variant.selectedOptions.find(
+        vari => vari.name !== "Type"
+      );
+      return size.value;
+    },
+    lineItemThumbnail(lineItem) {
+      if (lineItem && lineItem.variant && lineItem.variant.image)
+        return (lineItem.variant.image.src || "").replace(
+          ".jpg",
+          "_180x180.jpg"
+        );
+      return "";
     }
   }
 };
 </script>
 
-<style scoped>
-img {
-  width: 300px;
-  height: auto;
-}
+<style>
 .veils {
   display: flex;
   flex-wrap: wrap;
 }
-.VueCarousel {
+.VueCarousel-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+.VueCarousel-inner {
   flex: 1;
+  display: flex;
+}
+.VueCarousel-slide {
+  flex: 1;
+  display: flex;
+}
+.accessories__border {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
+  width: calc(100% - 60px);
+  max-width: 70%;
+  height: 40%;
+  margin-top: -70px;
+  margin-right: auto;
+  margin-left: auto;
+  border: 1px solid #000;
+}
+.link {
+  text-decoration: none;
+}
+tbody {
+  border: 2px solid #556e8e;
+}
+.lineItem--thumbnail {
+  height: 65px;
+  width: 65px;
+  display: block;
+  overflow: hidden;
+}
+table {
+  border-top: 1px solid black;
+}
+/* table thead tr {
+  height: 5em;
+} */
+/* Flex Table */
+table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+table thead,
+table tbody {
+  display: block;
+}
+table thead {
+  margin-right: 0px;
+}
+table tbody {
+  flex: 1;
+  overflow-y: scroll;
+}
+table tr {
+  width: 100%;
+  display: flex;
+}
+table tr td,
+table tr th {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+.action-col {
+  max-width: 5%;
+}
+.checkout-btn {
+  background-color: transparent;
+  background-image: url(./assets/button.svg);
+  background-size: 100% 100%;
+  border: 0;
+  @apply text-white px-6 py-4;
 }
 </style>
