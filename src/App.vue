@@ -13,8 +13,7 @@
         v-show="step == 1"
       >
         <p
-          v-if="this.type !== 'buy'"
-          class="text-xl text-blue font-serif tracking-wide leading-loose py-8 italic"
+          class="text-xl text-blue font-serif tracking-wide leading-loose pb-8 italic"
         >
           Add a veil to try on box for free
         </p>
@@ -22,12 +21,12 @@
           <veil
             v-for="item in products"
             :key="item.id"
-            :type="veilByType"
+            :client="client"
+            :checkoutId="checkoutId"
             :item="item"
-            :currentVeil="selectedVeil"
-            :variantIndex="variantIndex"
-            @select-veil="onSelectVeil"
-            @deselect-veil="onDeselectVeil"
+            :selected="isSelected(item)"
+            @update-checkout="onUpdateCheckout"
+            @remove-line-item="onRemoveVeil"
             class="flex flex-1 z-10"
           />
         </div>
@@ -94,6 +93,12 @@
               </tr>
             </tbody>
           </table>
+          <div
+            v-if="error"
+            id="errors"
+            class="text-red font-sans pt-8"
+            v-html="errorMsg"
+          ></div>
         </div>
 
         <div class="w-full py-8 flex flex-col">
@@ -178,7 +183,11 @@
           </div>
           <div class="w-1/4 flex flex-col text-center">
             Subtotal: ${{ checkout.subtotalPrice }}
-            <button class="checkout-btn">Checkout</button>
+            <button
+              class="checkout-btn"
+              @click="openCheckout"
+              v-html="checkoutText"
+            ></button>
           </div>
         </div>
       </div>
@@ -237,6 +246,12 @@ export default {
           opt => opt.name === "Type" && opt.value === "Sample"
         );
       });
+    },
+    checkoutText() {
+      if (this.checkingOut) {
+        return "Proccessing";
+      }
+      return "Checkout";
     }
   },
   data() {
@@ -259,7 +274,10 @@ export default {
       note: "",
       size: "",
       weddingDate: "",
-      receiveDate: ""
+      receiveDate: "",
+      error: false,
+      errorMsg: "",
+      checkingOut: false
     };
   },
   watch: {
@@ -290,6 +308,43 @@ export default {
           .then(checkout => {
             this.checkout = checkout;
           });
+      }
+    },
+    "checkout.lineItems": {
+      immediate: true,
+      handler(newItems) {
+        let veilCount = newItems
+          .filter(
+            item =>
+              item.title.toLowerCase().includes("veil") &&
+              item.variant.selectedOptions.find(
+                i => i.name === "Type" && i.value === "Sample"
+              )
+          )
+          .map(item => item.quantity)
+          .reduce((a, b) => a + b, 0);
+        let dressCount = newItems
+          .filter(
+            item =>
+              !item.title.toLowerCase().includes("veil") &&
+              item.variant.selectedOptions.find(
+                i => i.name === "Type" && i.value === "Sample"
+              )
+          )
+          .map(item => item.quantity)
+          .reduce((a, b) => a + b, 0);
+        this.error = true;
+        if (dressCount > 3 && veilCount > 1) {
+          this.errorMsg =
+            "You can only have up to 3 dress samples and 1 veil sample per try-on box";
+        } else if (veilCount > 1) {
+          this.errorMsg = "Only one veil is allowed per try-on box";
+        } else if (dressCount > 3) {
+          this.errorMsg =
+            "You can only have up to 3 dress samples per try-on box";
+        } else {
+          this.error = false;
+        }
       }
     }
   },
@@ -328,20 +383,8 @@ export default {
     });
   },
   methods: {
-    onSelectVeil(veil) {
-      this.selectedVeil = veil;
-    },
-    onDeselectVeil() {
-      this.selectedVeil = {};
-    },
     onUpdateCheckout(checkout) {
       this.checkout = checkout;
-    },
-    isVeilSelected(veil) {
-      this.selectedVeil.id === veil.id;
-    },
-    openCheckout() {
-      window.location = this.checkout.webUrl;
     },
     lineItemSize(lineItem) {
       let size = lineItem.variant.selectedOptions.find(
@@ -369,6 +412,51 @@ export default {
         behavior: "smooth",
         block: "start",
         inline: "start"
+      });
+    },
+    isSelected(item) {
+      return this.checkout.lineItems
+        .map(i => i.variant.product.id)
+        .includes(item.id);
+    },
+    onRemoveVeil(variantId) {
+      let lineItemId = this.checkout.lineItems.find(
+        item => item.variant.id === variantId
+      );
+      this.removeLineItem(lineItemId);
+    },
+    refetchCheckout() {
+      return new Promise(resolve => {
+        this.client.checkout.fetch(this.checkoutId).then(checkout => {
+          this.checkout = checkout;
+          resolve(checkout);
+        });
+      });
+    },
+    openCheckout() {
+      this.checkingOut = true;
+      this.refetchCheckout().then(checkout => {
+        if (this.error) {
+          document.getElementById("errors").scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "center"
+          });
+          this.checkingOut = false;
+          return;
+        }
+        this.client.checkout
+          .updateAttributes(checkout.id, {
+            customAttributes: [
+              { key: "note", value: this.note },
+              { key: "size", value: this.size },
+              { key: "weddingDate", value: this.weddingDate },
+              { key: "receiveDate", value: this.receiveDate }
+            ]
+          })
+          .then(checkout => {
+            window.location = checkout.webUrl;
+          });
       });
     }
   }

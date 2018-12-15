@@ -17,15 +17,19 @@
       </select>
 
       <div class="w-full self-end text-center py-4 flex flex-col">
-        <button v-if="selected" @click="deselectVeil">Selected</button>
-        <button
-          v-else-if="available"
-          @click="selectVeil"
-          v-html="buyButtonText"
-        ></button>
+        <button v-if="adding" disabled>Adding To Cart</button>
+        <button v-else-if="availableToTry" @click="tryVeil">
+          Order Try On
+        </button>
+        <button v-else-if="added" @click="removeVeil">Added</button>
         <button class v-else>Out of stock</button>
-        <div class="mt-4" v-if="availableToBuy">
-          <a href="#" class="font-sans text-blue italic text-xl" @click="buy"
+        <div class="mt-4">
+          <span v-if="addingBuy">Adding To Cart</span>
+          <a
+            v-else
+            href="#"
+            class="font-sans text-blue italic text-xl"
+            @click="buyVeil"
             >Buy Now</a
           >
         </div>
@@ -42,23 +46,25 @@ export default {
       type: Object,
       required: true
     },
-    currentVeil: {
-      type: Object,
-      default: () => ({})
+    selected: {
+      type: Boolean,
+      default: false
     },
-    variantIndex: {
+    client: {
       type: Object,
-      default: () => ({})
+      required: true
     },
-    type: {
+    checkoutId: {
       type: String,
-      default: "Custom"
+      required: true
     }
   },
   data() {
     return {
       variant: {},
-      currentVariant: {}
+      addingBuy: false,
+      adding: false,
+      added: false
     };
   },
   computed: {
@@ -76,18 +82,22 @@ export default {
       );
       return lengthVariant[0].values;
     },
-    available() {
-      return this.currentVariant && this.currentVariant.available;
+    sampleVariant() {
+      return this.item.variants.find(variant => {
+        let type = variant.selectedOptions.find(opt => opt.name === "Type");
+        let length = variant.selectedOptions.find(opt => opt.name === "Length");
+        return type.value === "Sample" && length.value === this.variant;
+      });
     },
-    selected() {
-      return (
-        this.currentVeil &&
-        this.currentVeil.id &&
-        this.variantIndex[this.currentVeil.id].id === this.item.id
-      );
+    availableToTry() {
+      return !this.added && this.sampleVariant && this.sampleVariant.available;
     },
-    buyButtonText() {
-      return "Order Try-On";
+    buyVariant() {
+      return this.item.variants.find(variant => {
+        let type = variant.selectedOptions.find(opt => opt.name === "Type");
+        let length = variant.selectedOptions.find(opt => opt.name === "Length");
+        return type.value === "Custom" && length.value === this.variant;
+      });
     }
   },
   watch: {
@@ -97,33 +107,61 @@ export default {
         let item = this.item.variants.find(
           variant =>
             variant.selectedOptions.find(opt => opt.name === "Type").value ===
-            this.type
+            "Sample"
         );
-        this.variant = item.selectedOptions.find(
-          opt => opt.name === "Length"
-        ).value;
+        if (item) {
+          this.variant = item.selectedOptions.find(
+            opt => opt.name === "Length"
+          ).value;
+        }
       }
     },
-    variant: {
+    selected: {
       immediate: true,
       handler(newVal) {
-        const newVariant = this.item.variants.find(variant => {
-          let type = variant.selectedOptions.find(opt => opt.name == "Type");
-          let length = variant.selectedOptions.find(
-            opt => opt.name == "Length"
-          );
-          return length.value === newVal && type.value === this.type;
-        });
-        this.currentVariant = newVariant;
+        this.added = newVal;
       }
     }
   },
   methods: {
-    selectVeil() {
-      this.$emit("select-veil", this.currentVariant);
+    tryVeil() {
+      let lineItems = [
+        {
+          variantId: this.sampleVariant.id,
+          quantity: 1
+        }
+      ];
+      this.adding = true;
+      this.client.checkout
+        .addLineItems(this.checkoutId, lineItems)
+        .then(checkout => {
+          this.added = true;
+          this.$emit("update-checkout", checkout);
+        })
+        .finally(() => {
+          this.adding = false;
+        });
     },
-    deselectVeil() {
-      this.$emit("deselect-veil", this.currentVariant);
+    buyVeil() {
+      let lineItems = [
+        {
+          variantId: this.buyVariant.id,
+          quantity: 1
+        }
+      ];
+
+      this.addingBuy = true;
+      this.client.checkout
+        .addLineItems(this.checkoutId, lineItems)
+        .then(checkout => {
+          this.$emit("update-checkout", checkout);
+        })
+        .finally(() => {
+          this.addingBuy = false;
+        });
+    },
+    removeVeil() {
+      this.$emit("remove-line-item", this.sampleVariant.id);
     }
   }
 };
