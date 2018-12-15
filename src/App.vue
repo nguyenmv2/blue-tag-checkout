@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <div class="container mx-auto">
+    <div class="container mx-auto h-screen">
       <div class="flex flex-col justify-center text-center pb-6 tracking-wide">
         <h2 class="font-serif text-2xl text-center py-4 italic leading-loose">
           Finish The Look With
@@ -35,6 +35,7 @@
           <a
             href="#"
             class="font-serif text-xl tracking-wide text-blue link uppercase italic"
+            @click.prevent="scrollToCart"
           >
             Continue to checkout
             <img src="./assets/arrows_sideways.svg" alt="" class="h-4" />
@@ -43,7 +44,10 @@
       </div>
     </div>
     <div class="bg-blue-light pt-16">
-      <div class="container mx-auto flex flex-col justify-center items-center">
+      <div
+        id="cart"
+        class="container mx-auto flex flex-col justify-center items-center"
+      >
         <h1 class="text-blue font-sans">Shopping Bag</h1>
 
         <div class="w-full py-8 flex flex-col">
@@ -79,7 +83,14 @@
                 <th>{{ lineItemSize(lineItem) }}</th>
                 <th>{{ lineItem.quantity }}</th>
                 <th>${{ lineItem.variant.price }}</th>
-                <th class="action-col">x</th>
+                <th class="action-col">
+                  <a
+                    href="#"
+                    class="text-blue"
+                    @click.prevent="removeLineItem(lineItem)"
+                    >x</a
+                  >
+                </th>
               </tr>
             </tbody>
           </table>
@@ -118,7 +129,14 @@
                 <th>{{ lineItemSize(lineItem) }}</th>
                 <th>{{ lineItem.quantity }}</th>
                 <th>${{ lineItem.variant.price }}</th>
-                <th class="action-col">x</th>
+                <th class="action-col">
+                  <a
+                    href="#"
+                    class="text-blue"
+                    @click.prevent="removeLineItem(lineItem)"
+                    >x</a
+                  >
+                </th>
               </tr>
             </tbody>
           </table>
@@ -126,27 +144,27 @@
         <div
           class="flex flex-col lg:flex-row font-serif text-blue text-md tracking-wide leading-loose ml-4 justify-center"
         >
-          <div class="w-3/4 flex flex-col lg:flex-row -mx-4">
-            <div class="flex flex-col px-4">
+          <div class="w-3/4 flex flex-col md:flex-row flex-wrap -mx-4">
+            <div class="flex flex-col p-4">
               <input type="text" name="size" v-model="size" />
               <label for="size"
                 >What size of clothes do you typically wear?</label
               >
             </div>
-            <div class="flex flex-col px-4">
+            <div class="flex flex-col p-4">
               <flat-pickr :config="dateConfig" v-model="weddingDate" />
               <label for="wedding-date"
                 >When is your wedding? (leave this blank if you haven't decided
                 on a date yet)</label
               >
             </div>
-            <div class="flex flex-col px-4">
+            <div class="flex flex-col p-4">
               <flat-pickr :config="dateConfig" v-model="receiveDate" />
               <label for="receive-date">
                 When do you want to receive your sample? (leave blank for ASAP)
               </label>
             </div>
-            <div class="flex flex-col px-4">
+            <div class="flex flex-col p-4">
               <textarea
                 name="note"
                 cols="30"
@@ -158,7 +176,8 @@
               >
             </div>
           </div>
-          <div class="w-1/4">
+          <div class="w-1/4 flex flex-col text-center">
+            Subtotal: ${{ checkout.subtotalPrice }}
             <button class="checkout-btn">Checkout</button>
           </div>
         </div>
@@ -337,6 +356,20 @@ export default {
           "_180x180.jpg"
         );
       return "";
+    },
+    removeLineItem(lineItem) {
+      this.client.checkout
+        .removeLineItems(this.checkout.id, [lineItem.id])
+        .then(checkout => {
+          this.checkout = checkout;
+        });
+    },
+    scrollToCart() {
+      document.getElementById("cart").scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "start"
+      });
     }
   }
 };
