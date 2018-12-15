@@ -101,14 +101,17 @@
           ></div>
         </div>
 
-        <div class="w-full py-8 flex flex-col">
+        <div
+          class="w-full py-8 flex flex-col"
+          v-show="purchaseLineItems.length > 0"
+        >
           <h2 class="py-4 font-serif font-semibold text-blue">
             Your Purchases
           </h2>
           <table class="w-full pt-4">
             <thead>
               <tr class="text-blue font-sans tracking-wide">
-                <th>Your Try-On Sample</th>
+                <th>Your Purchases</th>
                 <th>Size</th>
                 <th>Quantity</th>
                 <th>Price</th>
@@ -199,14 +202,12 @@
 import Client from "shopify-buy";
 import flatPickr from "vue-flatpickr-component";
 import "flatpickr/dist/flatpickr.css";
-import VModal from "./components/VModal";
 import Veil from "./components/Veil";
 
 export default {
   name: "app",
   components: {
     flatPickr,
-    VModal,
     Veil
   },
   props: {

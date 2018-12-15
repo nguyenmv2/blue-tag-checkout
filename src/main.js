@@ -6,7 +6,12 @@ import "./assets/tailwind.css";
 Vue.config.productionTip = false;
 Vue.use(VueCarousel);
 
-const checkoutId = document.getElementById("app").dataset.checkoutId;
+let checkoutId = document.getElementById("app").dataset.checkoutId;
+if (!checkoutId) {
+  checkoutId = window.localStorage.getItem(
+    "842ea89dedb8e2075e5434240efe2402.bluetagbridal.myshopify.com.checkoutId"
+  );
+}
 new Vue({
   render: h => h(App, { props: { checkoutId } })
 }).$mount("#app");
